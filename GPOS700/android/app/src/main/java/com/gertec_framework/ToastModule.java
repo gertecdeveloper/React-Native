@@ -8,10 +8,16 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Paint;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.nfc.NfcAdapter;
 import android.nfc.Tag;
 import android.nfc.tech.MifareClassic;
 import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
+import android.widget.Switch;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -22,11 +28,16 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.ReadableArray;
+import com.facebook.react.bridge.ReadableMap;
+import com.google.gson.Gson;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import br.com.gertec.gedi.GEDI;
@@ -36,14 +47,22 @@ import br.com.gertec.gedi.exceptions.GediException;
 import br.com.gertec.gedi.interfaces.IGEDI;
 import br.com.gertec.gedi.interfaces.IPRNTR;
 import br.com.gertec.gedi.structs.GEDI_PRNTR_st_BarCodeConfig;
+import com.phi.gertec.sat.satger.SatGerLib;
+
 import br.com.gertec.gedi.structs.GEDI_PRNTR_st_PictureConfig;
 import br.com.gertec.gedi.structs.GEDI_PRNTR_st_StringConfig;
 
+import static android.app.Activity.RESULT_CANCELED;
+import static android.app.Activity.RESULT_OK;
 import static android.hardware.Camera.Parameters.FLASH_MODE_ON;
+import static com.gertec_framework.MainActivity.satLib;
+
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.Arguments;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 
 
 public class ToastModule extends ReactContextBaseJavaModule implements ActivityEventListener {
@@ -73,6 +92,11 @@ public class ToastModule extends ReactContextBaseJavaModule implements ActivityE
 
     // Tag do Cartão
     private Tag tag;
+    Intent intentGer7 = new Intent(Intent.ACTION_VIEW, Uri.parse("pos7api://pos7"));
+
+
+    Gson gson = new Gson();
+    Bundle bundle = new Bundle();
 
 
 
@@ -86,7 +110,14 @@ public class ToastModule extends ReactContextBaseJavaModule implements ActivityE
 //        reactContext.addLifecycleEventListener(this);
         gertecPrinter = new GertecPrinter(reactContext.getApplicationContext());
         gertecPrinter.setConfigImpressao(configPrint);
+
+//       Looper.prepare();
+
+
+
     }
+
+
     @Override
     public String getName() {
         return "ToastExample";
@@ -98,10 +129,27 @@ public class ToastModule extends ReactContextBaseJavaModule implements ActivityE
         constants.put(DURATION_LONG_KEY, Toast.LENGTH_LONG);
         return constants;
     }
+
+    public String respSitefToJson(Intent data) throws JSONException {
+        JSONObject json = new JSONObject();
+        json.put("CODRESP",data.getStringExtra("CODRESP"));
+        json.put("COMP_DADOS_CONF",data.getStringExtra("COMP_DADOS_CONF"));
+        json.put("CODTRANS",data.getStringExtra("CODTRANS"));
+        json.put("VLTROCO",data.getStringExtra("VLTROCO"));
+        json.put("REDE_AUT",data.getStringExtra("REDE_AUT"));
+        json.put("BANDEIRA",data.getStringExtra("BANDEIRA"));
+        json.put("NSU_SITEF",data.getStringExtra("NSU_SITEF"));
+        json.put("NSU_HOST",data.getStringExtra("NSU_HOST"));
+        json.put("COD_AUTORIZACAO",data.getStringExtra("COD_AUTORIZACAO"));
+        json.put("NUM_PARC",data.getStringExtra("NUM_PARC"));
+        json.put("TIPO_PARC",data.getStringExtra("TIPO_PARC"));
+        json.put("VIA_ESTABELECIMENTO",data.getStringExtra("VIA_ESTABELECIMENTO"));
+        json.put("VIA_CLIENTE",data.getStringExtra("VIA_CLIENTE"));
+
+        return json.toString();
+    }
     @Override
     public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
-
-
 
         //super(onActivityResult(activity,requestCode,resultCode,data));
         IntentResult intentResult = IntentIntegrator.parseActivityResult(requestCode,resultCode,data);
@@ -114,7 +162,8 @@ public class ToastModule extends ReactContextBaseJavaModule implements ActivityE
                         .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
                         .emit("eventName", params);
 
-            }else{
+            }
+            else{
                 try{
 //                    Toast.makeText(reactContext.getApplicationContext(),intentResult.getContents(), Toast.LENGTH_SHORT).show();
                     WritableMap params = Arguments.createMap();
@@ -129,6 +178,36 @@ public class ToastModule extends ReactContextBaseJavaModule implements ActivityE
                     e.printStackTrace();
 
                 }
+            }
+        }else if(requestCode == 4713){
+//            System.out.println("sou data: "+data);
+//            System.out.println( "sou o gson: "+ data.getStringExtra("jsonResp"));
+            if (resultCode == RESULT_OK && data != null) {
+                WritableMap params1 = Arguments.createMap();
+
+                params1.putString("tef", data.getStringExtra("jsonResp"));
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventTef", params1);
+
+            }
+        } else if(requestCode == 4321) {
+            if (resultCode == RESULT_OK || resultCode == RESULT_CANCELED && data != null) {
+                try {
+
+
+                    WritableMap params1 = Arguments.createMap();
+
+                    params1.putString("tef", respSitefToJson(data));
+                    reactContext
+                            .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                            .emit("eventTef", params1);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                Toast.makeText(reactContext.getApplicationContext(), "m-SiTef Outro Codigo", Toast.LENGTH_LONG).show();
+
             }
         }
 
@@ -178,7 +257,7 @@ public class ToastModule extends ReactContextBaseJavaModule implements ActivityE
                 this.gertecPrinter.setConfigImpressao(configPrint);
                 this.gertecPrinter.imprimeTexto(texto);
             }
-            gertecPrinter.ImpressoraOutput();
+
         }catch (Exception e){
             e.printStackTrace();
         }
@@ -218,7 +297,7 @@ public class ToastModule extends ReactContextBaseJavaModule implements ActivityE
                 this.gertecPrinter.imprimeBarCode(texto,height,width,barCodeType);
 
             }
-            gertecPrinter.ImpressoraOutput();
+
         }catch (GediException e){
             e.printStackTrace();
         }
@@ -383,13 +462,8 @@ public class ToastModule extends ReactContextBaseJavaModule implements ActivityE
 
         } catch (Exception e) {
             e.printStackTrace();
-        }finally {
-            try {
-                gertecPrinter.ImpressoraOutput();
-            } catch (GediException e) {
-                e.printStackTrace();
-            }
         }
+
     }
 
 
@@ -444,6 +518,7 @@ public class ToastModule extends ReactContextBaseJavaModule implements ActivityE
         Activity activity = getCurrentActivity();
         Intent  intent = new Intent(getCurrentActivity(),NfcExemploId.class);
         activity.startActivity(intent);
+
     }
     @ReactMethod
     public void nfcGedi(){
@@ -452,4 +527,254 @@ public class ToastModule extends ReactContextBaseJavaModule implements ActivityE
         activity.startActivity(intent);
     }
 
+    @ReactMethod
+    public void realizarAcaoGer7( String json){
+        System.out.println("sou o json : "+json);
+        Activity activity = getCurrentActivity();
+        intentGer7.putExtra("jsonReq", json);
+        activity.startActivityForResult(intentGer7, 4713);
+
+    }
+    @ReactMethod
+    public void realizarAcaoMsiTef(ReadableMap map, String tipo){
+
+        Intent intentSitef = new Intent("br.com.softwareexpress.sitef.msitef.ACTIVITY_CLISITEF");
+
+
+        Activity activity = getCurrentActivity();
+
+        switch(tipo){
+            case "venda":
+                bundle.putString("empresaSitef",map.getString("empresaSitef"));
+                bundle.putString("enderecoSitef",map.getString("enderecoSitef"));
+                bundle.putString("operador", map.getString("operador"));
+                bundle.putString("data", map.getString("data"));
+                bundle.putString("hora", map.getString("hora"));
+                bundle.putString("numeroCupom", map.getString("numeroCupom"));
+                bundle.putString("valor", map.getString("valor"));
+                bundle.putString("CNPJ_CPF", map.getString("CNPJ_CPF"));
+                bundle.putString("comExterna", map.getString("comExterna"));
+                bundle.putString("modalidade", map.getString("modalidade"));
+                if( map.getString("transacoesHabilitadas")!="0"){
+                    bundle.putString("transacoesHabilitadas", map.getString("transacoesHabilitadas"));
+                }
+                if(map.getString("numParcelas")!="0"){
+                    bundle.putString("numParcelas", map.getString("numParcelas"));
+
+                }
+                if( map.getString("restricoes")!="0"){
+                    bundle.putString("restricoes", map.getString("restricoes"));
+
+                }
+
+                bundle.putString("isDoubleValidation", map.getString("isDoubleValidation"));
+                bundle.putString("caminhoCertificadoCA", map.getString("caminhoCertificadoCA"));
+                bundle.putString("comprovante", map.getString("comprovante"));
+                intentSitef.putExtras(bundle);
+
+                activity.startActivityForResult(intentSitef, 4321);
+                break;
+            case "cancelamento":
+            case "reimpressao":
+                bundle.putString("empresaSitef",map.getString("empresaSitef"));
+                bundle.putString("enderecoSitef",map.getString("enderecoSitef"));
+                bundle.putString("operador", map.getString("operador"));
+                bundle.putString("data", map.getString("data"));
+                bundle.putString("hora", map.getString("hora"));
+                bundle.putString("numeroCupom", map.getString("numeroCupom"));
+                bundle.putString("valor", map.getString("valor"));
+                bundle.putString("CNPJ_CPF", map.getString("CNPJ_CPF"));
+                bundle.putString("comExterna", map.getString("comExterna"));
+                bundle.putString("modalidade", map.getString("modalidade"));
+                bundle.putString("isDoubleValidation", map.getString("isDoubleValidation"));
+                bundle.putString("caminhoCertificadoCA", map.getString("caminhoCertificadoCA"));
+                bundle.putString("comprovante", map.getString("comprovante"));
+                intentSitef.putExtras(bundle);
+                activity.startActivityForResult(intentSitef, 4321);
+                break;
+            case "funcoes":
+                bundle.putString("empresaSitef",map.getString("empresaSitef"));
+                bundle.putString("enderecoSitef",map.getString("enderecoSitef"));
+                bundle.putString("operador", map.getString("operador"));
+                bundle.putString("data", map.getString("data"));
+                bundle.putString("hora", map.getString("hora"));
+                bundle.putString("numeroCupom", map.getString("numeroCupom"));
+                bundle.putString("valor", map.getString("valor"));
+                bundle.putString("CNPJ_CPF", map.getString("CNPJ_CPF"));
+                bundle.putString("comExterna", map.getString("comExterna"));
+                bundle.putString("modalidade", map.getString("modalidade"));
+                bundle.putString("isDoubleValidation", map.getString("isDoubleValidation"));
+                bundle.putString("caminhoCertificadoCA", map.getString("caminhoCertificadoCA"));
+                bundle.putString("comprovante", map.getString("comprovante"));
+                bundle.putString("restricoes", map.getString("restricoes"));
+                intentSitef.putExtras(bundle);
+                activity.startActivityForResult(intentSitef, 4321);
+                break;
+
+
+        }
+    }
+    @ReactMethod
+    public  void alterarSat(int random, String codigoAtivacao, String codigoAtivacaoNovo, int op){
+
+        WritableMap params = Arguments.createMap();
+        params.putString("alterar", satLib.trocarCodAtivacao(codigoAtivacao, op,codigoAtivacaoNovo,random));
+        reactContext
+                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                .emit("eventAlterar", params);
+
+    }
+    @ReactMethod
+    public  void associarSat(int random, String codigoAtivacao, String cnpj, String cnpjSH, String assinatura){
+
+        WritableMap params = Arguments.createMap();
+        params.putString("associar", satLib.associarSat(cnpj,cnpjSH,codigoAtivacao,assinatura,random));
+        reactContext
+                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                .emit("eventAssociar", params);
+
+    }
+    @ReactMethod
+    public  void ativarSat(int random, String codigoAtivacao, String cnpj){
+
+        WritableMap params = Arguments.createMap();
+        params.putString("ativar", satLib.ativarSat(codigoAtivacao,cnpj,random));
+        reactContext
+                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                .emit("eventAtivar", params);
+
+    }
+    @ReactMethod
+    public  void configRede(int random, String codigoAtivacao, ReadableArray dadosXml) throws IOException {
+//        System.out.println("rede: "+satLib.enviarConfRede(random, dadosXml, codigoAtivacao));
+
+        try {
+            WritableMap params = Arguments.createMap();
+            params.putString("rede", satLib.enviarConfRede(random, dadosXml, codigoAtivacao));
+            reactContext
+                    .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                    .emit("eventRede", params);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+    @ReactMethod
+    public  void ferramentasSat(String funcao, int random, String codigoAtivacao){
+        WritableMap params = Arguments.createMap();
+//        System.out.println("ativar retorno: "+ satLib.ativarSat(codigoAtivacao,cnpj,random));
+        switch (funcao){
+            case  "BloquearSat":
+//                System.out.println("bloquear retorno: "+ satLib.bloquearSat(codigoAtivacao,random));
+
+                params.putString("ferramenta", satLib.bloquearSat(codigoAtivacao,random));
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventFerramenta", params);
+                break;
+            case  "DesbloquearSat":
+//                System.out.println("desbloquear retorno: "+ satLib.desbloquearSat(codigoAtivacao,random));
+
+
+                params.putString("ferramenta", satLib.desbloquearSat(codigoAtivacao,random));
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventFerramenta", params);
+                break;
+            case  "ExtrairLog":
+//                System.out.println("ExtrairLog retorno: "+ satLib.extrairLog(codigoAtivacao,random));
+
+
+                params.putString("ferramenta", satLib.extrairLog(codigoAtivacao,random));
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventFerramenta", params);
+                break;
+            case  "AtualizarSoftware":
+//                System.out.println("Atualizar retorno: "+satLib.atualizarSoftware(codigoAtivacao,random));
+
+                params.putString("ferramenta", satLib.atualizarSoftware(codigoAtivacao,random));
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventFerramenta", params);
+                break;
+            case  "Versao":
+//                System.out.println("Versao retorno: "+satLib.versao());
+
+                params.putString("ferramenta", satLib.versao());
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventFerramenta", params);
+                break;
+        }
+
+
+    }
+    @ReactMethod
+    public  void testeSat(String funcao, int random, String codigoAtivacao, String cancela,String sessao){
+        WritableMap params = Arguments.createMap();
+
+//        System.out.println("ativar retorno: "+ satLib.ativarSat(codigoAtivacao,cnpj,random));
+        switch (funcao){
+            case  "ConsultarSat":
+//        System.out.println("Consultat retorno: "+ satLib.consultarSat(random));
+
+                params.putString("teste", satLib.consultarSat(random));
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventTeste", params);
+                break;
+            case  "ConsultarStatusOperacional":
+//                System.out.println("Status retorno: "+ satLib.consultarStatusOperacional(random,codigoAtivacao));
+
+
+                params.putString("teste", satLib.consultarStatusOperacional(random,codigoAtivacao));
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventTeste", params);
+                break;
+            case  "EnviarTesteFim":
+//                System.out.println("Teste fim a fim retorno: "+ satLib.enviarTesteFim(codigoAtivacao,random));
+
+                params.putString("teste", satLib.enviarTesteFim(codigoAtivacao,random));
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventTeste", params);
+                break;
+            case  "CancelarUltimaVenda":
+
+                params.putString("teste", satLib.cancelarUltimaVenda(codigoAtivacao,cancela,random));
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventTeste", params);
+                break;
+            case  "EnviarTesteVendas":
+//
+                params.putString("teste", satLib.enviarTesteVendas(codigoAtivacao,random));
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventTeste", params);
+                break;
+            case  "ConsultarNumeroSessao":
+
+                params.putString("teste", satLib.consultarNumeroSessao(codigoAtivacao,Integer.parseInt(sessao),random));
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventTeste", params);
+                break;
+        }
+
+
+    }
+    @ReactMethod
+    public  void fimImpressao(){
+        try {
+            gertecPrinter.ImpressoraOutput();
+            Toast.makeText(reactContext.getApplicationContext(), "Finalizou Impressao", Toast.LENGTH_LONG).show();
+
+        } catch (GediException e) {
+            e.printStackTrace();
+        }
+
+    }
 }

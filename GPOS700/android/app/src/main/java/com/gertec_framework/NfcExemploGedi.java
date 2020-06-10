@@ -32,6 +32,7 @@ public class NfcExemploGedi extends ReactActivity {
 
     private static int Contagem = 0;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

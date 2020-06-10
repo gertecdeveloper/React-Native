@@ -84,6 +84,7 @@ export default class Impressao extends Component {
         }
         if (text!=null){
             ToastExample.imprimeTexto(text,language1,parseInt(language2,10),toggle,toggle2,toggle3,alinhamento);
+            
 
         }
     }
@@ -103,13 +104,14 @@ export default class Impressao extends Component {
         }
         if (texto!=null){
             ToastExample.imprimeBarCode(texto,parseInt(height,10),parseInt(width,10),barCodeType);
+            ToastExample.fimImpressao();//irá finalizar a impressão, fica a critério onde será colocado, solução para otimizar tempo de impressão
         }
     }
     statusImpressora(){      
       
         ToastExample.statusImpressora();
         
-        setTimeout(() => { Alert.alert(this.state.statusPrint);  }, 100);
+        setTimeout(() => { Alert.alert('STATUS', this.state.statusPrint);  }, 100);
                  
       
     }
