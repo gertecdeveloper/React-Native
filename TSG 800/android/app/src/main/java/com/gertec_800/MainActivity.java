@@ -16,12 +16,14 @@ public class MainActivity extends ReactActivity {
    */
   public static GertecPrinter gertecPrinter;
   public static ConfigPrint configPrint;
+  public static SatLib satLib;
 
   @Override
   public void onCreate( Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     configPrint = new  ConfigPrint();
     gertecPrinter = new GertecPrinter(this);
+    satLib = new SatLib(this);
 
   }
 

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">gertec_800</string>
+    <string name="app_name">GertecOne ReactNative</string>
     <string name="aproxime_o_cart_o_da_leitora">Aproxime o cartão da leitora.</string>
 
     <string name="message_write_error">Erro ao gravar informação!</string>

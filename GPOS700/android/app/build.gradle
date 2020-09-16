@@ -150,7 +150,7 @@ android {
             keyPassword 'android'
         }
         gertec {
-            storeFile file('..\\..\\chave\\Development_GertecDeveloper_CustomerAPP.jks')
+            storeFile file('..\\..\\Chaves\\Development_GertecDeveloper_CustomerAPP.jks')
             storePassword 'Development@GertecDeveloper2018'
             keyAlias 'developmentgertecdeveloper_customerapp'
             keyPassword 'Development@GertecDeveloper2018'
@@ -161,6 +161,7 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.gertec
+            
         }
         debug{
             signingConfig signingConfigs.gertec

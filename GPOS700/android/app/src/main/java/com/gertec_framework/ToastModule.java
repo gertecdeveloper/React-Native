@@ -120,8 +120,9 @@ public class ToastModule extends ReactContextBaseJavaModule implements ActivityE
 
     @Override
     public String getName() {
-        return "ToastExample";
+        return "GertecGPOS700";
     }
+
     @Override
     public Map<String, Object> getConstants() {
         final Map<String, Object> constants = new HashMap<>();
@@ -166,6 +167,7 @@ public class ToastModule extends ReactContextBaseJavaModule implements ActivityE
             else{
                 try{
 //                    Toast.makeText(reactContext.getApplicationContext(),intentResult.getContents(), Toast.LENGTH_SHORT).show();
+
                     WritableMap params = Arguments.createMap();
                     params.putString("bar", this.tipoCode+": "+intentResult.getContents());
                     reactContext
@@ -185,23 +187,24 @@ public class ToastModule extends ReactContextBaseJavaModule implements ActivityE
             if (resultCode == RESULT_OK && data != null) {
                 WritableMap params1 = Arguments.createMap();
 
-                params1.putString("tef", data.getStringExtra("jsonResp"));
+                params1.putString("ger7", data.getStringExtra("jsonResp"));
                 reactContext
                         .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                        .emit("eventTef", params1);
+                        .emit("eventGer7", params1);
 
             }
         } else if(requestCode == 4321) {
             if (resultCode == RESULT_OK || resultCode == RESULT_CANCELED && data != null) {
                 try {
 
+              
+                    WritableMap params2 = Arguments.createMap();
 
-                    WritableMap params1 = Arguments.createMap();
-
-                    params1.putString("tef", respSitefToJson(data));
+                    params2.putString("msitef", respSitefToJson(data));
                     reactContext
                             .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                            .emit("eventTef", params1);
+                            .emit("eventSitef", params2);
+
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -239,18 +242,14 @@ public class ToastModule extends ReactContextBaseJavaModule implements ActivityE
 
     @ReactMethod
     public void imprimeTexto(String texto, String fontFamily, int fontSize, boolean negrito, boolean italico, boolean sublinhado, String alinhamento) {
+        
         this.configPrint.setTamanho(fontSize);
         this.configPrint.setNegrito(negrito);
         this.configPrint.setItalico(italico);
         this.configPrint.setSublinhado(sublinhado);
-//        System.out.println(fontSize);
-//        System.out.println(fontFamily);
-//        System.out.println(negrito);
-//        System.out.println(italico);
-//        System.out.println(sublinhado);
-
         this.configPrint.setFonte(fontFamily);
         this.configPrint.setAlinhamento(alinhamento);
+
         try{
             gertecPrinter.getStatusImpressora();
             if(gertecPrinter.isImpressoraOK()){
@@ -263,6 +262,7 @@ public class ToastModule extends ReactContextBaseJavaModule implements ActivityE
         }
 
     }
+
     @ReactMethod
     public void imprimeImagem() throws GediException{
 
@@ -273,7 +273,7 @@ public class ToastModule extends ReactContextBaseJavaModule implements ActivityE
                 gertecPrinter.setConfigImpressao(configPrint);
                 gertecPrinter.imprimeImagem("invoice");
                 gertecPrinter.avancaLinha(150);
-                gertecPrinter.ImpressoraOutput();
+                
             }
             else{
                 ShowFalha(sStatus);
@@ -569,7 +569,7 @@ public class ToastModule extends ReactContextBaseJavaModule implements ActivityE
 
                 bundle.putString("isDoubleValidation", map.getString("isDoubleValidation"));
                 bundle.putString("caminhoCertificadoCA", map.getString("caminhoCertificadoCA"));
-                bundle.putString("comprovante", map.getString("comprovante"));
+//                bundle.putString("comprovante", map.getString("comprovante"));
                 intentSitef.putExtras(bundle);
 
                 activity.startActivityForResult(intentSitef, 4321);
@@ -588,7 +588,7 @@ public class ToastModule extends ReactContextBaseJavaModule implements ActivityE
                 bundle.putString("modalidade", map.getString("modalidade"));
                 bundle.putString("isDoubleValidation", map.getString("isDoubleValidation"));
                 bundle.putString("caminhoCertificadoCA", map.getString("caminhoCertificadoCA"));
-                bundle.putString("comprovante", map.getString("comprovante"));
+//                bundle.putString("comprovante", map.getString("comprovante"));
                 intentSitef.putExtras(bundle);
                 activity.startActivityForResult(intentSitef, 4321);
                 break;
@@ -605,7 +605,7 @@ public class ToastModule extends ReactContextBaseJavaModule implements ActivityE
                 bundle.putString("modalidade", map.getString("modalidade"));
                 bundle.putString("isDoubleValidation", map.getString("isDoubleValidation"));
                 bundle.putString("caminhoCertificadoCA", map.getString("caminhoCertificadoCA"));
-                bundle.putString("comprovante", map.getString("comprovante"));
+//                bundle.putString("comprovante", map.getString("comprovante"));
                 bundle.putString("restricoes", map.getString("restricoes"));
                 intentSitef.putExtras(bundle);
                 activity.startActivityForResult(intentSitef, 4321);
@@ -614,40 +614,176 @@ public class ToastModule extends ReactContextBaseJavaModule implements ActivityE
 
         }
     }
+
     @ReactMethod
-    public  void alterarSat(int random, String codigoAtivacao, String codigoAtivacaoNovo, int op){
-
+    public void invocarMetodo(ReadableMap args){
         WritableMap params = Arguments.createMap();
-        params.putString("alterar", satLib.trocarCodAtivacao(codigoAtivacao, op,codigoAtivacaoNovo,random));
-        reactContext
-                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                .emit("eventAlterar", params);
 
+        switch (args.getString("funcao")){
+            case "AtivarSAT":        
+                params.putString("ativar", satLib.ativarSat(
+                    args.getString("codigoAtivar"),
+                    args.getString("cnpj"),
+                    Integer.parseInt(args.getString("random"))
+                ));
+
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventAtivar", params);
+                break;
+
+            case "AssociarSAT":
+                params.putString("associar", satLib.associarSat(
+                    args.getString("cnpj"),
+                    args.getString("cnpjSH"),
+                    args.getString("codigoAtivar"),
+                    args.getString("assinatura"),
+                    Integer.parseInt(args.getString("random"))
+                ));
+
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventAssociar", params);
+                break;
+
+            case  "ConsultarSat":
+                params.putString("teste", satLib.consultarSat(
+                    Integer.parseInt(args.getString("random"))
+                ));
+
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventTeste", params);
+                break;
+
+            case  "ConsultarStatusOperacional":
+                params.putString("teste", satLib.consultarStatusOperacional(
+                    Integer.parseInt(args.getString("random")),
+                    args.getString("codigoAtivar")
+                ));
+
+                reactContext
+                    .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                    .emit("eventTeste", params);
+                break;
+
+            case  "EnviarTesteFim":
+                params.putString("teste", satLib.enviarTesteFim(
+                    args.getString("codigoAtivar"),
+                    args.getString("xmlVenda"),
+                    Integer.parseInt(args.getString("random"))
+                ));
+                
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventTeste", params);
+                break;
+
+            case  "CancelarUltimaVenda":
+                params.putString("teste", satLib.cancelarUltimaVenda(
+                    args.getString("codigoAtivar"),
+                    args.getString("xmlCancelamento"),
+                    args.getString("cancela"),
+                    Integer.parseInt(args.getString("random"))
+                ));
+
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventTeste", params);
+                break;
+
+            case  "EnviarTesteVendas":
+                params.putString("teste", satLib.enviarTesteVendas(
+                    args.getString("codigoAtivar"),
+                    args.getString("xmlVenda"),
+                    Integer.parseInt(args.getString("random"))
+                ));
+
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventTeste", params);
+                break;
+
+            case  "ConsultarNumeroSessao":
+                params.putString("teste", satLib.consultarNumeroSessao(
+                    args.getString("codigoAtivar"),
+                    Integer.parseInt(args.getString("sessao")),
+                    Integer.parseInt(args.getString("random"))
+                ));
+
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventTeste", params);
+                break;
+            
+            case "TrocarCodAtivacao":
+                params.putString("alterar", satLib.trocarCodAtivacao(
+                    args.getString("codigoAtivar"),
+                    Integer.parseInt(args.getString("op")),
+                    args.getString("codigoAtivarNovo"),
+                    Integer.parseInt(args.getString("random"))
+                ));
+
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventAlterar", params);
+                break;
+            
+            case  "BloquearSat":
+                params.putString("ferramenta", satLib.bloquearSat(
+                    args.getString("codigoAtivar"),
+                    Integer.parseInt(args.getString("random"))
+                ));
+
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventFerramenta", params);
+                break;
+
+            case  "DesbloquearSat":
+                params.putString("ferramenta", satLib.desbloquearSat(
+                    args.getString("codigoAtivar"),
+                    Integer.parseInt(args.getString("random"))
+                ));
+
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventFerramenta", params);
+                break;
+
+            case  "ExtrairLog":
+                params.putString("ferramenta", satLib.extrairLog(
+                    args.getString("codigoAtivar"),
+                    Integer.parseInt(args.getString("random"))
+                ));
+
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventFerramenta", params);
+                break;
+
+            case  "AtualizarSoftware":
+                params.putString("ferramenta", satLib.atualizarSoftware(
+                    args.getString("codigoAtivar"),
+                    Integer.parseInt(args.getString("random"))
+                ));
+
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventFerramenta", params);
+                break;
+
+            case  "Versao":
+                params.putString("ferramenta", satLib.versao());
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("eventFerramenta", params);
+                break;
+        }
     }
-    @ReactMethod
-    public  void associarSat(int random, String codigoAtivacao, String cnpj, String cnpjSH, String assinatura){
 
-        WritableMap params = Arguments.createMap();
-        params.putString("associar", satLib.associarSat(cnpj,cnpjSH,codigoAtivacao,assinatura,random));
-        reactContext
-                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                .emit("eventAssociar", params);
-
-    }
-    @ReactMethod
-    public  void ativarSat(int random, String codigoAtivacao, String cnpj){
-
-        WritableMap params = Arguments.createMap();
-        params.putString("ativar", satLib.ativarSat(codigoAtivacao,cnpj,random));
-        reactContext
-                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                .emit("eventAtivar", params);
-
-    }
     @ReactMethod
     public  void configRede(int random, String codigoAtivacao, ReadableArray dadosXml) throws IOException {
-//        System.out.println("rede: "+satLib.enviarConfRede(random, dadosXml, codigoAtivacao));
-
         try {
             WritableMap params = Arguments.createMap();
             params.putString("rede", satLib.enviarConfRede(random, dadosXml, codigoAtivacao));
@@ -657,115 +793,8 @@ public class ToastModule extends ReactContextBaseJavaModule implements ActivityE
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
-    @ReactMethod
-    public  void ferramentasSat(String funcao, int random, String codigoAtivacao){
-        WritableMap params = Arguments.createMap();
-//        System.out.println("ativar retorno: "+ satLib.ativarSat(codigoAtivacao,cnpj,random));
-        switch (funcao){
-            case  "BloquearSat":
-//                System.out.println("bloquear retorno: "+ satLib.bloquearSat(codigoAtivacao,random));
 
-                params.putString("ferramenta", satLib.bloquearSat(codigoAtivacao,random));
-                reactContext
-                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                        .emit("eventFerramenta", params);
-                break;
-            case  "DesbloquearSat":
-//                System.out.println("desbloquear retorno: "+ satLib.desbloquearSat(codigoAtivacao,random));
-
-
-                params.putString("ferramenta", satLib.desbloquearSat(codigoAtivacao,random));
-                reactContext
-                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                        .emit("eventFerramenta", params);
-                break;
-            case  "ExtrairLog":
-//                System.out.println("ExtrairLog retorno: "+ satLib.extrairLog(codigoAtivacao,random));
-
-
-                params.putString("ferramenta", satLib.extrairLog(codigoAtivacao,random));
-                reactContext
-                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                        .emit("eventFerramenta", params);
-                break;
-            case  "AtualizarSoftware":
-//                System.out.println("Atualizar retorno: "+satLib.atualizarSoftware(codigoAtivacao,random));
-
-                params.putString("ferramenta", satLib.atualizarSoftware(codigoAtivacao,random));
-                reactContext
-                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                        .emit("eventFerramenta", params);
-                break;
-            case  "Versao":
-//                System.out.println("Versao retorno: "+satLib.versao());
-
-                params.putString("ferramenta", satLib.versao());
-                reactContext
-                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                        .emit("eventFerramenta", params);
-                break;
-        }
-
-
-    }
-    @ReactMethod
-    public  void testeSat(String funcao, int random, String codigoAtivacao, String cancela,String sessao){
-        WritableMap params = Arguments.createMap();
-
-//        System.out.println("ativar retorno: "+ satLib.ativarSat(codigoAtivacao,cnpj,random));
-        switch (funcao){
-            case  "ConsultarSat":
-//        System.out.println("Consultat retorno: "+ satLib.consultarSat(random));
-
-                params.putString("teste", satLib.consultarSat(random));
-                reactContext
-                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                        .emit("eventTeste", params);
-                break;
-            case  "ConsultarStatusOperacional":
-//                System.out.println("Status retorno: "+ satLib.consultarStatusOperacional(random,codigoAtivacao));
-
-
-                params.putString("teste", satLib.consultarStatusOperacional(random,codigoAtivacao));
-                reactContext
-                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                        .emit("eventTeste", params);
-                break;
-            case  "EnviarTesteFim":
-//                System.out.println("Teste fim a fim retorno: "+ satLib.enviarTesteFim(codigoAtivacao,random));
-
-                params.putString("teste", satLib.enviarTesteFim(codigoAtivacao,random));
-                reactContext
-                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                        .emit("eventTeste", params);
-                break;
-            case  "CancelarUltimaVenda":
-
-                params.putString("teste", satLib.cancelarUltimaVenda(codigoAtivacao,cancela,random));
-                reactContext
-                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                        .emit("eventTeste", params);
-                break;
-            case  "EnviarTesteVendas":
-//
-                params.putString("teste", satLib.enviarTesteVendas(codigoAtivacao,random));
-                reactContext
-                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                        .emit("eventTeste", params);
-                break;
-            case  "ConsultarNumeroSessao":
-
-                params.putString("teste", satLib.consultarNumeroSessao(codigoAtivacao,Integer.parseInt(sessao),random));
-                reactContext
-                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                        .emit("eventTeste", params);
-                break;
-        }
-
-
-    }
     @ReactMethod
     public  void fimImpressao(){
         try {
@@ -776,5 +805,9 @@ public class ToastModule extends ReactContextBaseJavaModule implements ActivityE
             e.printStackTrace();
         }
 
+    }
+    @ReactMethod
+    public void avancaLinha(int linha) throws GediException {
+        gertecPrinter.avancaLinha(linha);
     }
 }

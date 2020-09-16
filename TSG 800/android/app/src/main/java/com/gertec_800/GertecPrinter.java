@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Paint;
 import android.graphics.Typeface;
+
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.MultiFormatWriter;
 import com.google.zxing.WriterException;
@@ -117,7 +118,7 @@ public class GertecPrinter {
                 this.typeface = Typeface.create(Typeface.SERIF, Typeface.NORMAL );
                 break;
             default:
-                this.typeface = Typeface.createFromAsset(this.context.getAssets(), configPrint.getFonte());
+                this.typeface = Typeface.createFromAsset(this.activity.getAssets(), configPrint.getFonte());
         }
 
         if (this.configPrint.isNegrito() && this.configPrint.isItalico()){

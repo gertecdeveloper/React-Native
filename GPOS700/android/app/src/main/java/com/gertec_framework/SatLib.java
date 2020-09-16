@@ -5,15 +5,16 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Build;
+import android.util.Base64;
 
 import androidx.annotation.RequiresApi;
-
 import com.facebook.react.bridge.ReadableArray;
 import com.phi.gertec.sat.satger.SatGerLib;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -21,18 +22,22 @@ import java.util.List;
 
 public class SatLib {
     public static SatGerLib serialComms;
+
     private String funcao;
+    Context context;
     private File arquivoXml = new File("mnt/sdcard/Gertec/teste_fim_a_fim.xml");
     private File arquivoXmlVendas = new File("mnt/sdcard/Gertec/EnviarDadosVenda.xml");
     private File arquivoXmlCancelamento = new File("mnt/sdcard/Gertec/CancelarVenda.xml");
-    public SatLib(Context context){
+
+    public SatLib(Context context) {
+        this.context = context;
         serialComms = new SatGerLib(context, dataReceivedListener); // Inicializando
     }
-
 
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     public String enviarConfRede(int random, ReadableArray dadosXml, String codigoAtivacao) throws IOException {
         System.out.println(BuildConfig.APPLICATION_ID);
+
         String caminhoXML = "data/data/"+ com.gertec_framework.BuildConfig.APPLICATION_ID +"/configRede.xml";
 
         File file = new File(caminhoXML);
@@ -142,7 +147,7 @@ public class SatLib {
             funcao = "ExtrairLog";
             return retornoDaFuncaoSat(serialComms.ExtrairLogs(random, codAtivacao));
         } catch (Exception e) {
-           return e.getMessage();
+            return e.getMessage();
         }
     }
 
@@ -158,18 +163,18 @@ public class SatLib {
     public String bloquearSat(String codAtivacao, int random) {
         try {
             funcao = "BloquearSat";
-           return retornoDaFuncaoSat(serialComms.BloquearSAT(random, codAtivacao));
+            return retornoDaFuncaoSat(serialComms.BloquearSAT(random, codAtivacao));
         } catch (Exception e) {
             return e.getMessage();
         }
     }
 
-
-    public String trocarCodAtivacao(String codAtual, int opt, String codNovo,int random) {
+    public String trocarCodAtivacao(String codAtual, int opt, String codNovo, int random) {
         try {
-            // Sempre o codigo de confirmação vai ser igual ao novo, pois já foi validado no flutter
+            // Sempre o codigo de confirmação vai ser igual ao novo, pois já foi validado no
+            // flutter
             funcao = "TrocarCodAtivacao";
-          return retornoDaFuncaoSat(serialComms.TrocarCodigoDeAtivacao(random, codAtual, opt, codNovo, codNovo));
+            return retornoDaFuncaoSat(serialComms.TrocarCodigoDeAtivacao(random, codAtual, opt, codNovo, codNovo));
         } catch (Exception e) {
             return e.getMessage();
         }
@@ -184,12 +189,20 @@ public class SatLib {
         }
     }
 
-    public String cancelarUltimaVenda(String codAtivacao, String chave, int random) {
+    public String cancelarUltimaVenda(String codAtivacao, String xmlBase64, String chave, int random) {
         try {
             funcao = "CancelarUltimaVenda";
             String vendaData;
-            // Carrega o XML
-            BufferedReader br = new BufferedReader(new FileReader(arquivoXmlCancelamento));
+
+            // Cria um arquivo XML
+            File file = new File(this.context.getFilesDir().getPath() + "/xmlCancelamento.xml");
+
+            // Escreve no XML os dados que foram enviados do XML decodificado (Flutter)
+            FileOutputStream fos = new FileOutputStream(file);
+            fos.write(Base64.decode(xmlBase64, Base64.NO_WRAP));
+            fos.close();
+
+            BufferedReader br = new BufferedReader(new FileReader(file));
             StringBuilder sb = new StringBuilder();
             String line = br.readLine();
 
@@ -199,18 +212,29 @@ public class SatLib {
                 line = br.readLine();
             }
             vendaData = sb.toString();
+            vendaData = vendaData.replaceAll("trocarCfe", chave);
+            System.out.println(vendaData);
             return retornoDaFuncaoSat(serialComms.CancelarUltimaVenda(random, codAtivacao, chave, vendaData));
         } catch (Exception e) {
             return e.getMessage();
         }
     }
 
-    public String enviarTesteVendas(String codAtivacao, int random) {
+    public String enviarTesteVendas(String codAtivacao, String xmlBase64, int random) {
         try {
             funcao = "EnviarTesteVendas";
             String vendaData;
+
+            // Cria um arquivo XML
+            File file = new File(this.context.getFilesDir().getPath() + "/xmlVenda.xml");
+
+            // Escreve no XML os dados que foram enviados do XML decodificado (Flutter)
+            FileOutputStream fos = new FileOutputStream(file);
+            fos.write(Base64.decode(xmlBase64, Base64.NO_WRAP));
+            fos.close();
+
             // Carrega o XML
-            BufferedReader br = new BufferedReader(new FileReader(arquivoXmlVendas));
+            BufferedReader br = new BufferedReader(new FileReader(file));
             StringBuilder sb = new StringBuilder();
             String line = br.readLine();
 
@@ -226,12 +250,21 @@ public class SatLib {
         }
     }
 
-    public String enviarTesteFim(String codAtivacao, int random) {
+    public String enviarTesteFim(String codAtivacao, String xmlBase64, int random) {
         try {
             funcao = "EnviarTesteFim";
             String vendaData;
+
+            // Cria um arquivo XML
+            File file = new File(this.context.getFilesDir().getPath() + "/xmlVenda.xml");
+
+            // Escreve no XML os dados que foram enviados do XML decodificado (Flutter)
+            FileOutputStream fos = new FileOutputStream(file);
+            fos.write(Base64.decode(xmlBase64, Base64.NO_WRAP));
+            fos.close();
+
             // Carrega o XML
-            BufferedReader br = new BufferedReader(new FileReader(arquivoXml));
+            BufferedReader br = new BufferedReader(new FileReader(file));
             StringBuilder sb = new StringBuilder();
             String line = br.readLine();
 
@@ -243,14 +276,14 @@ public class SatLib {
             vendaData = sb.toString();
             return retornoDaFuncaoSat(serialComms.TesteFimAFim(random, codAtivacao, vendaData));
         } catch (Exception e) {
-            return  e.getMessage();
+            return e.getMessage();
         }
     }
 
     public String consultarStatusOperacional(int random, String codAtivacao) {
         try {
             funcao = "ConsultarStatusOperacional";
-            return retornoDaFuncaoSat( serialComms.ConsultarStatusOperacional(random, codAtivacao));
+            return retornoDaFuncaoSat(serialComms.ConsultarStatusOperacional(random, codAtivacao));
         } catch (Exception e) {
             return e.getMessage();
         }
@@ -268,7 +301,8 @@ public class SatLib {
     public String associarSat(String cnpj, String cnpjSW, String codAtivacao, String assinatura, int random) {
         try {
             funcao = "AssociarSAT";
-            return retornoDaFuncaoSat(serialComms.AssociarAssinatura(random, codAtivacao, cnpjSW + "" + cnpj, assinatura));
+            return retornoDaFuncaoSat(
+                    serialComms.AssociarAssinatura(random, codAtivacao, cnpjSW + "" + cnpj, assinatura));
         } catch (Exception e) {
             return e.getMessage();
         }
@@ -284,13 +318,14 @@ public class SatLib {
     }
 
     public String retornoDaFuncaoSat(String s) {
-        //TODO Fazer algo com a String que foi retornada do sat.
+        // TODO Fazer algo com a String que foi retornada do sat.
         try {
             return s; // Retorna a mensagem com os pipes, para ser tratado no Flutter
-        } catch (Exception e)    {
+        } catch (Exception e) {
             return e.getMessage();
         }
     }
+
     SatGerLib.OnDataReceived dataReceivedListener = new SatGerLib.OnDataReceived() {
         public void onError(Exception e) {
             System.out.println(e.getMessage());
@@ -298,13 +333,13 @@ public class SatLib {
 
         @Override
         public void onReceivedDataUpdate(String s) {
-            //TODO Fazer algo com a String que foi retornada do sat.
+            // TODO Fazer algo com a String que foi retornada do sat.
             try {
-                    // Trata o retorno da função
-                    String[] respostaSplited;
-                    respostaSplited = s.split("\\|");
-                    byte ptext[] = respostaSplited[2].getBytes();
-                    String value = new String(ptext, "UTF-8");
+                // Trata o retorno da função
+                String[] respostaSplited;
+                respostaSplited = s.split("\\|");
+                byte ptext[] = respostaSplited[2].getBytes();
+                String value = new String(ptext, "UTF-8");
             } catch (Exception e) {
             }
         }

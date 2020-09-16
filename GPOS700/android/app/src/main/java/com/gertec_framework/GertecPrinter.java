@@ -13,6 +13,7 @@ import com.google.zxing.WriterException;
 import com.google.zxing.common.BitMatrix;
 import com.journeyapps.barcodescanner.BarcodeEncoder;
 
+import br.com.gertec.gedi.interfaces.ICL;
 import br.com.gertec.gedi.GEDI;
 import br.com.gertec.gedi.enums.GEDI_PRNTR_e_Alignment;
 import br.com.gertec.gedi.enums.GEDI_PRNTR_e_BarCodeType;
@@ -25,6 +26,9 @@ import br.com.gertec.gedi.structs.GEDI_PRNTR_st_PictureConfig;
 import br.com.gertec.gedi.structs.GEDI_PRNTR_st_StringConfig;
 
 public class GertecPrinter {
+
+    
+    private ICL icl = null;
 
     // Definições
     private final String IMPRESSORA_ERRO = "Impressora com erro.";
@@ -79,6 +83,7 @@ public class GertecPrinter {
             GEDI.init(this.context);
             this.iGedi = GEDI.getInstance(this.context);
             this.iPrint = this.iGedi.getPRNTR();
+            icl = GEDI.getInstance().getCL(); //Get ICL
             try {
                 new Thread().sleep(250);
             } catch (InterruptedException e) {
@@ -550,6 +555,7 @@ public class GertecPrinter {
     public void ImpressoraInit() throws GediException {
         try {
             if( this.iPrint != null && !isPrintInit  ){
+                this.icl.PowerOff(); // Desligar Módulo NFC - comando Mandatório antes de enviar comandos para a impressora.
                 this.iPrint.Init();
                 isPrintInit = true;
             }
